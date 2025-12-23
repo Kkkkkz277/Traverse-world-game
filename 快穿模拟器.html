@@ -1,0 +1,2985 @@
+<!DOCTYPE html>
+<!-- saved from url=(0052)https://mcp.edgeone.site/share/JH3SstQBZtdSf_3Lhpkcr -->
+<html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>快穿模拟器</title>
+    <style>
+        /* --- 全局样式 & 少女心变量 --- */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=ZCOOL+XiaoWei&display=swap');
+        /* 引入 Cropper.js 样式 */
+        @import url('https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css');
+
+        :root {
+            /* 背景与基础色 */
+            --bg-gradient: linear-gradient(135deg, #fff1eb 0%, #ace0f9 100%);
+            
+            /* 字体颜色 */
+            --primary-text: #5D4037; 
+            --secondary-text: #8D6E63;
+            
+            /* 强调色 */
+            --accent-color-1: #FF9EB5; /* 樱花粉 */
+            --accent-color-2: #FFD700; /* 金色 */
+            
+            /* 记忆颜色 */
+            --memory-small: #77DD77;   /* 马卡龙绿 */
+            --memory-big: #FF6961;     /* 马卡龙红 */
+            
+            /* 面板背景 - 毛玻璃效果 */
+            --sidebar-bg: rgba(255, 255, 255, 0.85);
+            --topbar-color: rgba(255, 255, 255, 0.85);
+            --topbar-img: none;
+            --story-bg: rgba(255, 255, 255, 0.65);
+            
+            /* 心声面板 */
+            --thought-bg: rgba(230, 230, 250, 0.7);
+            --thought-text: #6A5ACD;
+            
+            --panel-border: 1px solid rgba(255, 255, 255, 0.9);
+            --panel-shadow: 0 8px 32px 0 rgba(255, 158, 181, 0.15);
+            
+            /* 按钮与边框 */
+            --border-color: rgba(255, 158, 181, 0.5);
+            --button-bg: rgba(255, 255, 255, 0.7);
+            
+            /* 进度条背景 */
+            --progress-bar-bg: #EFEFEF;
+
+            /* 音乐播放器自定义变量 */
+            --music-widget-bg-color: rgba(255, 255, 255, 0.95);
+            --music-widget-bg-img: none;
+            --music-cover-img: none;
+            --play-btn-bg-color: var(--accent-color-1);
+            --play-btn-border: none;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            color: var(--primary-text);
+            font-family: 'Noto Serif SC', serif;
+            margin: 0;
+            padding: 0;
+            font-size: 16px;
+            line-height: 1.9;
+            overflow-x: hidden;
+        }
+        
+        /* 背景层 */
+        #bg-layer {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ff9eb5' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            z-index: -2;
+            pointer-events: none;
+            /* 默认平铺，不要cover */
+            background-repeat: repeat;
+            background-position: top left;
+            transition: filter 0.3s ease;
+        }
+        /* 当有自定义背景图时添加此class */
+        #bg-layer.custom-bg {
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        
+        /* 装饰层 */
+        #bg-decoration-layer {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            pointer-events: none;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: cover;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            width: 100%;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        /* --- 侧边状态栏 (变窄修复版) --- */
+        .sidebar {
+            position: fixed;
+            top: 60px; /* 避开顶部导航栏 */
+            left: -270px; /* 隐藏位置 */
+            width: 250px; /* 宽度变窄 */
+            height: calc(100% - 60px); /* 高度减去顶部栏 */
+            background: var(--sidebar-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-right: var(--panel-border);
+            box-shadow: var(--panel-shadow);
+            transition: left 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            z-index: 1000;
+            padding: 20px 12px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            border-radius: 0 20px 20px 0;
+        }
+        .sidebar.open { left: 0; }
+        
+        /* 按钮通用样式 */
+        .sidebar-toggle, .settings-btn, .barrage-toggle {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            background: #fff;
+            border: 2px solid var(--accent-color-1);
+            border-radius: 50%;
+            color: var(--accent-color-1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(255, 158, 181, 0.3);
+            font-size: 18px;
+        }
+        .sidebar-toggle:hover, .settings-btn:hover, .barrage-toggle:hover {
+            transform: scale(1.1) rotate(10deg);
+            background: var(--accent-color-1);
+            color: #fff;
+        }
+
+        /* 顶部导航栏 */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            z-index: 1100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            transition: background 0.3s;
+        }
+        
+        .top-bar::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--topbar-color);
+            background-image: var(--topbar-img);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            /* 下边缘虚化：由实到虚 */
+            mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .top-bar-btn {
+            background: transparent;
+            border: none;
+            color: var(--primary-text);
+            padding: 8px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 24px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+        }
+        .top-bar-btn:hover {
+            background: rgba(255, 255, 255, 0.5);
+            transform: scale(1.1);
+            box-shadow: 0 4px 10px rgba(255, 158, 181, 0.3);
+        }
+
+        .top-bar-btn {
+            background: transparent;
+            border: none;
+            color: var(--primary-text);
+            padding: 8px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 24px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+        }
+        .top-bar-btn:hover {
+            background: rgba(255, 255, 255, 0.5);
+            transform: scale(1.1);
+            box-shadow: 0 4px 10px rgba(255, 158, 181, 0.3);
+        }
+
+        /* 侧边栏开关位置逻辑 (下移) */
+        .sidebar-toggle { top: 80px; left: 20px; }
+        /* 展开时，按钮紧贴侧边栏右侧 (250px + 10px margin) */
+        .sidebar-toggle.open { left: 260px; } 
+        
+        .settings-btn { display: none; } /* 隐藏原有的悬浮设置按钮 */
+
+        /* 商城列表项样式 */
+        .shop-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            background: rgba(255,255,255,0.5);
+            transition: all 0.2s;
+        }
+        .shop-item:hover {
+            background: rgba(255,255,255,0.8);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .shop-item-info strong { color: var(--primary-text); font-size: 15px; }
+        .shop-item-info p { margin: 4px 0 0 0; font-size: 12px; color: var(--secondary-text); }
+        .shop-item-action { text-align: right; }
+        .shop-price { color: var(--accent-color-2); font-weight: bold; margin-bottom: 5px; font-size: 14px; text-shadow: 1px 1px 0 rgba(0,0,0,0.1); }
+        .btn-buy {
+            background: var(--accent-color-1);
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-buy:hover { background: #ff7eb9; }
+
+        /* 侧边栏导航 */
+        .sidebar-nav {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 2px solid rgba(255, 158, 181, 0.2);
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+        }
+        .nav-tab {
+            padding: 6px 4px;
+            cursor: pointer;
+            color: var(--secondary-text);
+            border-bottom: 3px solid transparent;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .nav-tab:hover { color: var(--accent-color-1); }
+        .nav-tab.active {
+            color: var(--accent-color-1);
+            border-bottom-color: var(--accent-color-1);
+        }
+        
+        .sidebar-content { flex-grow: 1; overflow-y: auto; padding-right: 2px; }
+        
+        /* --- 修复：确保内容面板显示 --- */
+        .content-panel { display: none; animation: fadeIn 0.4s ease; }
+        .content-panel.active { display: block; } /* 关键修复 */
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .info-item { margin-bottom: 12px; font-size: 13px; display: flex; align-items: center; flex-wrap: wrap;}
+        .info-item strong { color: var(--primary-text); min-width: 60px; margin-right: 5px; }
+        .info-item span { color: var(--secondary-text); font-family: 'ZCOOL XiaoWei', serif; }
+        
+        /* 进度条美化 */
+        .progress-bar-container {
+            width: 100%;
+            background-color: var(--progress-bar-bg);
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+            margin-top: 6px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #FFD1FF, var(--accent-color-1));
+            border-radius: 10px;
+            transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* 卡片样式 */
+        .character-item, .task-item {
+            background: rgba(255, 255, 255, 0.6);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            transition: transform 0.2s;
+        }
+        .character-item:hover, .task-item:hover { transform: translateY(-2px); }
+        .character-item strong, .task-item strong { font-size: 14px; color: var(--accent-color-1); display: block; margin-bottom: 5px; border-bottom: 1px dashed rgba(0,0,0,0.1); padding-bottom: 5px;}
+
+        /* --- 记忆卡片样式 --- */
+        .memory-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed var(--border-color);
+        }
+        .btn-small, .btn-small-danger {
+            flex: 1;
+            padding: 6px;
+            font-size: 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            border: none;
+            font-weight: bold;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .btn-small {
+            background: #fff;
+            color: var(--secondary-text);
+            border: 1px solid var(--border-color);
+        }
+        .btn-small:hover { background: var(--accent-color-1); color: white; border-color: var(--accent-color-1); }
+        .btn-small-danger {
+            flex: 0.6;
+            background: #fff0f0;
+            color: #ff6b6b;
+            border: 1px solid #ffcccc;
+        }
+        .btn-small-danger:hover { background: #ff6b6b; color: white; }
+
+        .memory-item {
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            line-height: 1.5;
+            position: relative;
+            overflow: hidden;
+        }
+        .memory-item.small {
+            background: rgba(255, 255, 255, 0.6);
+            border-left: 3px solid var(--memory-small);
+            color: #666;
+        }
+        .memory-item.big {
+            background: rgba(255, 240, 245, 0.8);
+            border-left: 3px solid var(--memory-big);
+            color: #5D4037;
+            border: 1px solid rgba(255, 182, 193, 0.3);
+        }
+        .memory-tag {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: #fff;
+        }
+        .tag-small { background: var(--memory-small); }
+        .tag-big { background: var(--memory-big); }
+
+        /* --- 主剧情区 --- */
+        .main-content {
+            padding: 100px 20px 150px 20px;
+            width: 100%;
+            max-width: 850px;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+        
+        /* 剧情卡片化 */
+        .story-block { 
+            font-size: 17px; 
+            line-height: 2; 
+            background: var(--story-bg);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(255, 158, 181, 0.15);
+            backdrop-filter: blur(5px);
+            transition: background 0.3s;
+        }
+        .story-block p { margin-bottom: 1.5em; text-align: justify; }
+        
+        .meta-info {
+            color: var(--secondary-text);
+            font-size: 13px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            font-family: 'ZCOOL XiaoWei', serif;
+            opacity: 0.8;
+            flex-wrap: wrap;
+        }
+        .meta-info span {
+            background: rgba(255,255,255,0.6);
+            padding: 4px 10px;
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.8);
+        }
+
+        .player-thought {
+            background-color: var(--thought-bg);
+            border: 2px solid rgba(255,255,255,0.5);
+            padding: 20px;
+            margin: 25px 0;
+            font-style: italic;
+            color: var(--thought-text);
+            border-radius: 20px;
+            font-size: 15px;
+            position: relative;
+            transition: all 0.3s;
+        }
+        .player-thought::before {
+            content: var(--icon-thought-content, "💭");
+            position: absolute;
+            top: -15px;
+            left: 20px;
+            font-size: 24px;
+            background-color: rgba(255,255,255,0.8);
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background-image: var(--icon-thought-url, none);
+            background-size: 60%;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        
+        .choices {
+            margin-top: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .choice-btn {
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid var(--border-color);
+            color: var(--primary-text);
+            padding: 16px 20px;
+            border-radius: 15px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            width: 100%;
+            font-family: 'Noto Serif SC', serif;
+            font-size: 16px;
+            line-height: 1.6;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            position: relative;
+            overflow: hidden;
+        }
+        .choice-btn:hover {
+            background: #fff;
+            transform: translateY(-3px) scale(1.01);
+            border-color: var(--accent-color-1);
+            box-shadow: 0 10px 20px rgba(255, 158, 181, 0.25);
+        }
+        .choice-btn:hover strong { color: var(--accent-color-1); }
+        .choice-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            filter: grayscale(1);
+        }
+        .choice-btn strong {
+            color: #6d5c5c;
+            display: block;
+            margin-bottom: 5px;
+            font-size: 17px;
+            transition: color 0.3s;
+        }
+
+        /* --- 底部弹幕栏 --- */
+        .barrage-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 140px;
+            background: linear-gradient(to top, rgba(255, 255, 255, 0.9), transparent);
+            z-index: 500;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .barrage-toggle {
+            bottom: 20px;
+            right: 20px;
+            font-size: 14px;
+            pointer-events: all;
+        }
+        .barrage-item {
+            position: absolute;
+            background-color: rgba(255, 105, 180, 0.7); /* 亮粉色半透明 */
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            white-space: nowrap;
+            font-size: 14px;
+            font-weight: bold;
+            animation: barrage-scroll 12s linear infinite;
+            border: 1px solid rgba(255,255,255,0.4);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        @keyframes barrage-scroll {
+            from { transform: translateX(100vw); }
+            to { transform: translateX(-100%); }
+        }
+
+        /* --- 设置模态框 (浅色主题) --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 240, 245, 0.6); /* 浅粉遮罩 */
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active { display: flex; animation: fadeIn 0.3s; }
+        .settings-modal {
+            background: #fff;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            border-radius: 25px;
+            border: 1px solid #fff;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(167, 139, 250, 0.2);
+            position: relative; /* 为裁剪覆盖层定位 */
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+        }
+        .modal-header h3 { color: var(--accent-color-1); font-size: 20px; margin: 0; }
+        .modal-body {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding-right: 10px;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; color: var(--secondary-text); font-weight: bold; font-size: 14px; }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            background: #f9f9f9;
+            border: 2px solid #eee;
+            color: var(--primary-text);
+            padding: 12px;
+            border-radius: 12px;
+            box-sizing: border-box;
+            font-family: monospace;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus, .form-group textarea:focus {
+            border-color: var(--accent-color-1);
+            outline: none;
+            background: #fff;
+        }
+        .form-group textarea { height: 120px; resize: vertical; font-size: 13px; line-height: 1.5; }
+        
+        .modal-footer {
+            margin-top: 25px;
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border-radius: 30px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            font-size: 14px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .btn-primary { 
+            background: linear-gradient(45deg, var(--accent-color-1), #ffc3a0); 
+            color: white; 
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(255, 158, 181, 0.4); }
+        
+        .btn-secondary { background: #f0f0f0; color: #666; }
+        .btn-secondary:hover { background: #e0e0e0; }
+        
+        .btn-test { background: #fff; border: 2px solid var(--accent-color-2); color: #d4af37; }
+        .btn-test:hover { background: var(--accent-color-2); color: white; }
+
+        /* Loading Indicator - 可爱版 */
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            margin: 30px 0;
+            color: var(--accent-color-1);
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .loading-spinner.active { display: block; }
+        .loading-spinner::after {
+            content: " ✨";
+            animation: spin 2s linear infinite;
+            display: inline-block;
+        }
+        .loading-spinner::before {
+            content: "✨ ";
+            animation: spin 2s linear infinite reverse;
+            display: inline-block;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Scrollbar 美化 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 158, 181, 0.5); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-color-1); }
+        
+        /* 裁剪容器样式 (覆盖层模式) */
+        #crop-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff;
+            z-index: 50;
+            display: none; /* 初始隐藏 */
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .crop-container {
+            flex-grow: 1;
+            background-color: #f0f0f0;
+            overflow: hidden;
+            border-radius: 8px;
+            position: relative;
+        }
+        .crop-container img {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+        }
+        .crop-actions {
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .crop-tip { font-size: 12px; color: #666; }
+
+        /* 移动端适配微调 */
+        @media (max-width: 600px) {
+            .main-content { padding: 80px 15px 120px 15px; }
+            .story-block { padding: 20px; font-size: 16px; }
+            /* 移动端侧边栏宽度 */
+            .sidebar { width: 240px; left: -260px; }
+            .sidebar-toggle.open { left: 250px; }
+        }
+
+        /* 悬浮音乐播放器 (横向胶囊风格 - 仿QQ音乐桌面歌词) */
+        .music-widget {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background-color: var(--music-widget-bg-color);
+            background-image: var(--music-widget-bg-img);
+            background-size: cover;
+            background-position: center;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 40px; /* 胶囊形状 */
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            z-index: 2000;
+            display: none; /* 默认隐藏 */
+            flex-direction: column; /* 改为纵向布局以容纳进度条 */
+            align-items: center;
+            padding: 0; /* padding 移到内部容器 */
+            border: 1px solid rgba(255,255,255,0.8);
+            transition: opacity 0.3s, transform 0.3s;
+            cursor: grab; /* 整体可拖拽 */
+            user-select: none;
+            max-width: 340px;
+            overflow: visible; /* 允许菜单溢出 */
+        }
+        
+        .music-widget-main {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            padding: 6px 15px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* 进度条样式 */
+        .music-progress-container {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.3);
+            cursor: pointer;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            border-radius: 0 0 40px 40px;
+            overflow: hidden;
+        }
+        .music-progress-bar {
+            height: 100%;
+            background: var(--accent-color-1);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        /* 时间显示 - 悬浮显示 */
+        .music-time-tooltip {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 10px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+        .music-widget:hover .music-time-tooltip { opacity: 1; }
+        .music-widget:active { cursor: grabbing; }
+        .music-widget.active { display: flex; animation: slideInRight 0.4s ease; }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+        .music-cover {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FF9EB5 0%, #ace0f9 100%);
+            background-image: var(--music-cover-img);
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 2px 10px rgba(255, 158, 181, 0.3);
+            margin-right: 12px;
+            border: 2px solid #fff;
+            animation: rotate 10s linear infinite;
+            animation-play-state: paused;
+            flex-shrink: 0;
+        }
+        .music-cover.playing { animation-play-state: running; }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .music-info { 
+            text-align: left; 
+            margin-right: 10px; 
+            width: 110px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center;
+            overflow: hidden;
+        }
+        .music-title { font-weight: bold; color: var(--primary-text); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+        .music-artist { color: var(--secondary-text); font-size: 10px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .control-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--secondary-text);
+            padding: 0;
+            transition: color 0.2s;
+        }
+        .control-btn:hover { color: var(--accent-color-1); }
+        .play-btn {
+            width: 30px;
+            height: 30px;
+            background: var(--play-btn-bg-color);
+            border: var(--play-btn-border);
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(255, 158, 181, 0.4);
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .play-btn:hover { transform: scale(1.1); }
+
+        /* 播放列表弹窗化 (在下方弹出) */
+        .widget-footer { position: relative; margin-left: 10px; }
+        .playlist-toggle { 
+            font-size: 18px; 
+            cursor: pointer; 
+            color: var(--secondary-text);
+            display: flex; align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+        }
+        .playlist-toggle:hover { color: var(--accent-color-1); }
+        
+        .playlist-drawer {
+            position: absolute;
+            top: 35px; /* 下方弹出 */
+            right: 0;
+            width: 200px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            border: 1px solid rgba(0,0,0,0.05);
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s;
+            z-index: 2001;
+        }
+        .playlist-drawer.open { max-height: 250px; overflow-y: auto; }
+        
+        .playlist-item {
+            padding: 8px 12px;
+            font-size: 11px;
+            border-bottom: 1px solid rgba(0,0,0,0.03);
+            cursor: pointer;
+            color: var(--secondary-text);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .playlist-item:hover { background: rgba(255,255,255,1); }
+        .playlist-item.active { color: var(--accent-color-1); font-weight: bold; background: rgba(255, 240, 245, 0.5); }
+        .playlist-item-name {
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-right: 5px;
+        }
+        .rename-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            opacity: 0.5;
+            padding: 2px;
+        }
+        .rename-btn:hover { opacity: 1; transform: scale(1.1); }
+        
+        .import-btn {
+            width: 100%;
+            background: #fafafa;
+            border: none;
+            color: #888;
+            font-size: 11px;
+            padding: 10px;
+            cursor: pointer;
+            border-top: 1px solid rgba(0,0,0,0.05);
+        }
+        .import-btn:hover { color: var(--accent-color-1); background: #fff; }
+
+        /* 关闭按钮悬浮在右上角 */
+        .widget-close-float {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 18px;
+            height: 18px;
+            background: #fff;
+            border-radius: 50%;
+            color: #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            opacity: 0;
+            transition: opacity 0.2s;
+            border: 1px solid #eee;
+        }
+        .music-widget:hover .widget-close-float { opacity: 1; }
+        .widget-close-float:hover { color: var(--accent-color-1); transform: scale(1.1); }
+    </style>
+    <!-- 引入 Cropper.js JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    
+    .button-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1000;
+    }
+    
+    .edgeone-button {
+        display: flex;
+        align-items: center;
+        background: #000000;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 20px 6px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .edgeone-button:hover {
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        transform: translateY(-1px);
+    }
+    
+
+    
+    .close-button {
+        position: absolute;
+        top: 2px;
+        right: 4px;
+        width: 14px;
+        height: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #888888;
+        font-size: 10px;
+        cursor: pointer;
+        opacity: 1;
+        z-index: 1001;
+    }
+</style><script src="./快穿模拟器_files/js" async=""></script><script>window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag("js", new Date());gtag("config", "G-MBR88GEWNE");</script></head>
+<body>
+    <div id="bg-layer"></div>
+    <div id="bg-decoration-layer"></div>
+    <div class="game-container">
+        <!-- 顶部条状栏 -->
+        <div class="top-bar">
+            <button class="top-bar-btn" onclick="openMusic()" title="音乐"><span id="icon-music">🎵</span></button>
+            <button class="top-bar-btn" onclick="openShop()" title="商城"><span id="icon-shop">🛒</span></button>
+            <button class="top-bar-btn" onclick="openBeautify()" title="美化"><span id="icon-beautify">🎨</span></button>
+            <button class="top-bar-btn" onclick="openSettings()" title="设置"><span id="icon-settings">⚙️</span></button>
+        </div>
+
+        <!-- 侧边栏开关 -->
+        <div class="sidebar-toggle open" onclick="toggleSidebar()"><span id="icon-sidebar">❤</span></div>
+        <!-- 设置按钮 (已整合至顶部栏，隐藏) -->
+        <div class="settings-btn" onclick="openSettings()">⚙️</div>
+
+        <!-- 侧边栏 -->
+        <aside class="sidebar open" id="sidebar">
+            <div class="sidebar-nav">
+                <div class="nav-tab" onclick="switchTab(event, 'info')">信息</div>
+                <div class="nav-tab" onclick="switchTab(event, 'character')">角色</div>
+                <div class="nav-tab" onclick="switchTab(event, 'task')">任务</div>
+                <div class="nav-tab active" onclick="switchTab(event, 'memory')">记忆</div>
+            </div>
+            <div class="sidebar-content">
+                <!-- 信息面板 -->
+                <div id="info" class="content-panel">
+                    <div class="info-item"><strong>当前世界</strong><span id="val-world">加载中...</span></div>
+                    <div class="info-item" style="display:block;">
+                        <div style="display:flex; justify-content:space-between;">
+                            <strong>爽度</strong><span id="val-cool">0</span>
+                        </div>
+                        <div class="progress-bar-container"><div class="progress-bar" id="bar-cool" style="width: 0%;"></div></div>
+                    </div>
+                    <div class="info-item"><strong>积分</strong><span id="val-points">100</span></div>
+                    <div class="info-item"><strong>金钱</strong><span id="val-money">0</span></div>
+                    <hr style="border-color: rgba(0,0,0,0.05); margin: 15px 0;">
+                    <div class="info-item"><strong>姓名</strong><span id="val-name">???</span></div>
+                    <div class="info-item"><strong>身份</strong><span id="val-role">???</span></div>
+                    <div class="info-item"><strong>能力</strong><span id="val-ability">无</span></div>
+                    <div class="info-item"><strong>道具</strong><span id="val-item">无</span></div>
+                    <div class="info-item"><strong>容貌</strong><span id="val-looks">???</span></div>
+                    <div class="info-item"><strong>体质</strong><span id="val-body">???</span></div>
+                    <div class="info-item"><strong>幸运</strong><span id="val-luck">?</span></div>
+                </div>
+                
+                <!-- 角色面板 -->
+                <div id="character" class="content-panel">
+                    <div id="character-list">
+                        <p style="color: var(--secondary-text); text-align: center; margin-top: 20px;">暂无可攻略角色</p>
+                    </div>
+                </div>
+
+                <!-- 任务面板 -->
+                <div id="task" class="content-panel">
+                    <div id="task-list">
+                        <p style="color: var(--secondary-text); text-align: center; margin-top: 20px;">暂无任务</p>
+                    </div>
+                </div>
+
+                <!-- 记忆面板 -->
+                <div id="memory" class="content-panel active">
+                    <div class="memory-controls">
+                        <button class="btn-small" onclick="loadGameData()">📂 读取旧梦</button>
+                        <button class="btn-small-danger" onclick="clearGameData()">🗑️ 遗忘</button>
+                    </div>
+                    <div id="memory-list">
+                        <p style="color: var(--secondary-text); text-align: center; font-size:12px; margin-top: 20px;">暂无记忆记录</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 主剧情区 -->
+        <main class="main-content">
+            <div class="meta-info" id="meta-info">
+                <span>时间: 未知</span>
+                <span>天气: 未知</span>
+                <span>地点: 未知</span>
+            </div>
+
+            <div class="story-block" id="story-text">
+                <p>欢迎来到《快穿模拟器》。</p>
+                <p>请点击右上角 <span id="intro-settings-icon">⚙️</span> 设置您的 API Key，然后点击“保存并开始游戏”以开启您的穿越之旅。</p>
+            </div>
+
+            <div class="player-thought" id="player-thought" style="display:none;"></div>
+
+            <div class="loading-spinner" id="loading">
+                ...剧情生成中...
+            </div>
+
+            <div class="choices" id="choices-area">
+                <!-- 选项将在这里生成 -->
+            </div>
+        </main>
+
+        <!-- 底部弹幕栏 -->
+        <div class="barrage-container" id="barrage-container" style="display: block;"></div>
+        <div class="barrage-toggle" onclick="toggleBarrage()">弹</div>
+    </div>
+
+    <!-- 悬浮音乐播放器 (横向胶囊) -->
+    <div id="music-widget" class="music-widget">
+        <div class="widget-close-float" onclick="toggleMusicWidget()">✕</div>
+        
+        <div class="music-widget-main">
+            <div class="music-cover" id="music-cover">🎵</div>
+            
+            <div class="music-info">
+                <div class="music-title" id="music-title">未播放</div>
+                <div class="music-artist" id="music-artist">点击右侧列表</div>
+            </div>
+            
+            <div class="controls">
+                <button class="control-btn" onclick="prevMusic()">⏮</button>
+                <div class="play-btn" onclick="togglePlay()" id="play-pause-btn">▶</div>
+                <button class="control-btn" onclick="nextMusic()">⏭</button>
+            </div>
+            
+            <div class="widget-footer">
+                <div class="playlist-toggle" onclick="togglePlaylist()">⋮</div>
+                <div class="playlist-drawer" id="playlist-drawer">
+                    <div class="playlist" id="playlist">
+                        <!-- 列表项 -->
+                    </div>
+                    <button class="import-btn" onclick="document.getElementById('music-upload').click()">📂 导入音乐</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 进度条区域 -->
+        <div class="music-progress-container" id="music-progress-container" onclick="seekMusic(event)">
+            <div class="music-progress-bar" id="music-progress-bar"></div>
+        </div>
+        <div class="music-time-tooltip">
+            <span id="music-current-time">0:00</span> / <span id="music-duration">0:00</span>
+        </div>
+        
+        <!-- 隐藏的文件输入 -->
+        <input type="file" id="music-upload" accept="audio/*" multiple style="display:none" onchange="handleMusicUpload(this)">
+    </div>
+
+    <!-- 商城模态框 -->
+    <div class="modal-overlay" id="shop-modal">
+        <div class="settings-modal">
+            <div class="modal-header">
+                <h3>🛍️ 系统商城 (刷新: <span id="shop-refresh-count">10</span>/10)</h3>
+                <span style="cursor:pointer; font-size:20px; color: #aaa;" onclick="closeShop()">✕</span>
+            </div>
+            <div style="padding: 10px; background: #fff0f5; border-radius: 10px; margin-bottom: 15px; font-size: 13px; color: #d63384;">
+                当前积分: <span id="shop-points" style="font-weight:bold; font-size:16px;">0</span>
+                <span style="float:right; color:#888;">每10回合自动刷新</span>
+            </div>
+            <div class="modal-body" id="shop-items-container">
+                <!-- 商品列表 -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeShop()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 美化模态框 -->
+    <div class="modal-overlay" id="beautify-modal">
+        <div class="settings-modal">
+            <div class="modal-header">
+                <h3>🎨 界面美化</h3>
+                <span style="cursor:pointer; font-size:20px; color: #aaa;" onclick="closeBeautify()">✕</span>
+            </div>
+            <div class="modal-body">
+                <!-- 裁剪覆盖层 -->
+                <div id="crop-overlay">
+                    <div class="crop-container">
+                        <img id="crop-image" src="" alt="待裁剪图片">
+                    </div>
+                    <div class="crop-actions">
+                        <span class="crop-tip">💡 拖动/缩放选框，双击应用</span>
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn btn-secondary" onclick="cancelCrop()">取消</button>
+                            <button class="btn btn-primary" onclick="applyCrop()">✅ 应用裁剪</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>🖼️ 背景图片 (支持裁剪)</label>
+                    <input type="file" accept="image/*" onchange="handleBgSelect(this)">
+                </div>
+                <div class="form-group">
+                    <label>🌫️ 背景模糊度 (<span id="blur-val">0px</span>)</label>
+                    <input type="range" min="0" max="20" value="0" step="1" oninput="updateBlur(this.value)">
+                </div>
+                
+                <div class="form-group">
+                    <label>🌸 背景装饰层 (上层装饰)</label>
+                    <div style="display:flex; gap:10px; margin-bottom:10px;">
+                        <input type="file" accept="image/*" onchange="handleDecorationSelect(this)">
+                        <button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="clearDecoration()">🗑️ 清除</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>👻 装饰透明度 (<span id="decoration-opacity-val">1.0</span>)</label>
+                    <input type="range" id="decoration-opacity" min="0" max="1" step="0.05" value="1" oninput="updateDecorationOpacity(this.value)">
+                </div>
+                
+                <hr style="border-top:1px dashed #eee; margin:20px 0;">
+                
+                <div class="form-group">
+                    <label>🔤 主要文字颜色 (Primary)</label>
+                    <input type="color" value="#5D4037" onchange="updateColor('--primary-text', this.value)">
+                </div>
+                <div class="form-group">
+                    <label>🔤 次要文字颜色 (Secondary)</label>
+                    <input type="color" value="#8D6E63" onchange="updateColor('--secondary-text', this.value)">
+                </div>
+                <div class="form-group">
+                    <label>✨ 强调色 (Accent)</label>
+                    <input type="color" value="#FF9EB5" onchange="updateColor('--accent-color-1', this.value)">
+                </div>
+                
+                <hr style="border-top:1px dashed #eee; margin:20px 0;">
+                
+                <div class="form-group">
+                    <label>📒 记忆颜色 (小总结)</label>
+                    <input type="color" value="#77DD77" onchange="updateColor('--memory-small', this.value)">
+                </div>
+                <div class="form-group">
+                    <label>📕 记忆颜色 (大总结)</label>
+                    <input type="color" value="#FF6961" onchange="updateColor('--memory-big', this.value)">
+                </div>
+                
+                <hr style="border-top:1px dashed #eee; margin:20px 0;">
+                
+                <div class="form-group">
+                    <label>📑 侧边栏背景颜色</label>
+                    <input type="color" id="sidebar-color-picker" value="#ffffff" onchange="updateSidebarColor()">
+                </div>
+                <div class="form-group">
+                    <label>👻 侧边栏透明度 (<span id="sidebar-opacity-val">0.85</span>)</label>
+                    <input type="range" id="sidebar-opacity" min="0" max="1" step="0.05" value="0.85" oninput="updateSidebarColor()">
+                </div>
+
+                <hr style="border-top:1px dashed #eee; margin:20px 0;">
+
+                <div class="form-group">
+                    <label>🔝 顶部导航栏背景颜色</label>
+                    <input type="color" id="topbar-color-picker" value="#ffffff" onchange="updateTopBarColor()">
+                </div>
+                <div class="form-group">
+                    <label>👻 顶部导航栏透明度 (<span id="topbar-opacity-val">0.85</span>)</label>
+                    <input type="range" id="topbar-opacity" min="0" max="1" step="0.05" value="0.85" oninput="updateTopBarColor()">
+                </div>
+                <hr style="border-top:1px dashed #eee; margin:20px 0;">
+                
+                <div class="form-group">
+                    <label>🎨 图标自定义 (支持 Emoji 或 SVG/图片)</label>
+                    <div class="icon-setting-row" style="margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;">
+                        <label style="font-size:12px; margin:0;">音乐 (🎵)</label>
+                        <div style="display:flex; gap:5px;">
+                            <input type="text" placeholder="Emoji" style="width:60px; padding:5px;" onchange="updateIcon('music', this.value, false)">
+                            <input type="file" accept="image/*" style="width:150px; font-size:11px;" onchange="handleIconUpload('music', this)">
+                        </div>
+                    </div>
+                    <div class="icon-setting-row" style="margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;">
+                        <label style="font-size:12px; margin:0;">商城 (🛒)</label>
+                        <div style="display:flex; gap:5px;">
+                            <input type="text" placeholder="Emoji" style="width:60px; padding:5px;" onchange="updateIcon('shop', this.value, false)">
+                            <input type="file" accept="image/*" style="width:150px; font-size:11px;" onchange="handleIconUpload('shop', this)">
+                        </div>
+                    </div>
+                    <div class="icon-setting-row" style="margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;">
+                        <label style="font-size:12px; margin:0;">美化 (🎨)</label>
+                        <div style="display:flex; gap:5px;">
+                            <input type="text" placeholder="Emoji" style="width:60px; padding:5px;" onchange="updateIcon('beautify', this.value, false)">
+                            <input type="file" accept="image/*" style="width:150px; font-size:11px;" onchange="handleIconUpload('beautify', this)">
+                        </div>
+                    </div>
+                    <div class="icon-setting-row" style="margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;">
+                        <label style="font-size:12px; margin:0;">设置 (⚙️)</label>
+                        <div style="display:flex; gap:5px;">
+                            <input type="text" placeholder="Emoji" style="width:60px; padding:5px;" onchange="updateIcon('settings', this.value, false)">
+                            <input type="file" accept="image/*" style="width:150px; font-size:11px;" onchange="handleIconUpload('settings', this)">
+                        </div>
+                    </div>
+                    <div class="icon-setting-row" style="margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;">
+                        <label style="font-size:12px; margin:0;">侧边栏 (❤)</label>
+                        <div style="display:flex; gap:5px;">
+                            <input type="text" placeholder="Emoji" style="width:60px; padding:5px;" onchange="updateIcon('sidebar', this.value, false)">
+                            <input type="file" accept="image/*" style="width:150px; font-size:11px;" onchange="handleIconUpload('sidebar', this)">
+                        </div>
+                    </div>
+                    <div class="icon-setting-row" style="margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;">
+                        <label style="font-size:12px; margin:0;">心声 (💭)</label>
+                        <div style="display:flex; gap:5px;">
+                            <input type="text" placeholder="Emoji" style="width:60px; padding:5px;" onchange="updateIcon('thought', this.value, false)">
+                            <input type="file" accept="image/*" style="width:150px; font-size:11px;" onchange="handleIconUpload('thought', this)">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>📜 剧情区背景颜色</label>
+                    <input type="color" id="story-color-picker" value="#ffffff" onchange="updateStoryColor()">
+                </div>
+                <div class="form-group">
+                    <label>👻 剧情区透明度 (<span id="story-opacity-val">0.65</span>)</label>
+                    <input type="range" id="story-opacity" min="0" max="1" step="0.05" value="0.65" oninput="updateStoryColor()">
+                </div>
+
+                <hr style="border-top:1px dashed #eee; margin:20px 0;">
+
+                <!-- 心声设置 -->
+                <div class="form-group">
+                    <label>💭 心声背景颜色</label>
+                    <input type="color" id="thought-bg-picker" value="#E6E6FA" onchange="updateThoughtColor()">
+                </div>
+                <div class="form-group">
+                    <label>👻 心声背景透明度 (<span id="thought-opacity-val">0.7</span>)</label>
+                    <input type="range" id="thought-opacity" min="0" max="1" step="0.05" value="0.7" oninput="updateThoughtColor()">
+                </div>
+                <div class="form-group">
+                    <label>🔤 心声字体颜色</label>
+                    <input type="color" id="thought-text-picker" value="#6A5ACD" onchange="updateThoughtColor()">
+                </div>
+
+                <hr style="border-top:1px dashed #eee; margin:20px 0;">
+                
+                <h4 style="margin:10px 0; color:var(--accent-color-1);">🎵 音乐播放器设置</h4>
+                
+                <div class="form-group">
+                    <label>🖼️ 播放器背景 (支持裁剪)</label>
+                    <div style="display:flex; gap:10px; margin-bottom:10px;">
+                        <input type="file" accept="image/*" onchange="handleMusicWidgetBgSelect(this)">
+                        <button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="clearMusicWidgetBg()">🗑️ 清除</button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>🎨 播放器背景颜色</label>
+                    <input type="color" id="music-widget-bg-picker" value="#ffffff" onchange="updateMusicWidgetColor()">
+                </div>
+                
+                <div class="form-group">
+                    <label>👻 播放器透明度 (<span id="music-widget-opacity-val">0.95</span>)</label>
+                    <input type="range" id="music-widget-opacity" min="0" max="1" step="0.05" value="0.95" oninput="updateMusicWidgetColor()">
+                </div>
+
+                <div class="form-group">
+                    <label>⏯️ 暂停/播放键颜色</label>
+                    <input type="color" id="play-btn-bg-picker" value="#FF9EB5" onchange="updatePlayBtnColor()">
+                </div>
+                
+                 <div class="form-group">
+                    <label>🎨 暂停/播放键边框颜色 (可选)</label>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <input type="color" id="play-btn-border-picker" value="#ffffff" onchange="updatePlayBtnColor()">
+                        <span style="font-size:12px;color:#999;">(若不需要边框，可设为透明或与背景同色)</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>🖼️ 播放器左侧图标 (支持裁剪)</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="file" accept="image/*" onchange="handleMusicCoverSelect(this)">
+                        <button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="clearMusicCover()">🗑️ 恢复默认</button>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top:30px; border-top: 1px solid #eee; padding-top: 20px;">
+                    <button class="btn btn-small-danger" style="width:100%" onclick="resetBeautySettings()">↺ 重置所有美化配置</button>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeBeautify()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设置模态框 -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="settings-modal">
+            <div class="modal-header">
+                <h3>系统设置</h3>
+                <span style="cursor:pointer; font-size:20px; color: #aaa;" onclick="closeSettings()">✕</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>API Base URL (例如 https://api.openai.com/v1)</label>
+                    <input type="text" id="api-url" value="https://api.openai.com/v1" placeholder="API 地址">
+                </div>
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="password" id="api-key" placeholder="sk-...">
+                </div>
+                <div class="form-group">
+                    <label>模型名称 (例如 gpt-4o, gpt-3.5-turbo, deepseek-chat)</label>
+                    <input type="text" id="model-name" value="gpt-4o">
+                </div>
+                <div class="form-group">
+                    <label>自定义提示词 / 风格设定 (仅针对文风、禁忌词等)</label>
+                    <textarea id="system-prompt"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div>
+                    <button class="btn btn-test" onclick="testConnection()">测试连接</button>
+                </div>
+                <div>
+                    <button class="btn btn-secondary" onclick="closeSettings()">关闭</button>
+                    <button class="btn btn-primary" id="save-btn" onclick="saveAndRestart()">保存并开始游戏</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 核心规则 (内置，用户不可见不可修改) ---
+        const coreRules = `你现在将扮演一个女性向文字冒险游戏的游戏的主持人。这个游戏的名字叫做《快穿模拟器》。你的任务是引导玩家体验这一场穿越旅行。整个过程需要充满未知、悬念、反差和趣味性。
+请严格遵循以下游戏流程和规则：
+一.游戏核心机制
+1.世界生成与选择：
+注意‼️：禁止按读取先后顺序抽取世界和元素标签，不得只抽取热门，必须完全随机抽取，所有元素标签都不限制任何搭配，完全随机，不要只局限于热门搭配（豪门+真假千金、仙侠+替身此类）。
+世界池：宫廷权谋、江湖武侠、仙侠修真、宅斗种田、古典名著衍生（如红楼、西游记等背景）、清穿、架空历史、民国往事、娱乐圈风云、豪门恩怨、港风年代、校园青春、职场商战、悬疑推理、星际科幻（如ABO设定、哨向、虫族）、末世求生、兽世、西幻魔法（剑与魔法、魔法学院、龙与地下城）、西方罗曼史（中世纪、维多利亚时代）、名著（如傲慢与偏见、呼啸山庄、基督山伯爵等）。
+元素标签：参考晋江小说热梗：如先婚后爱、abo（可以搭配任何世界观，不限于星际）、哨向、替身、真假千金、白月光（自己是白月光）、万人嫌变万人迷、万人迷、重生复仇、师徒、伪骨科、小叔文学、克系、久别重逢、替嫁、电竞、推理、灵异、救赎、一见钟情、破镜重圆、姐弟恋、离婚后悔、全员火葬场、嫁给废人、养父、水仙、高岭之花、迪化流、女扮男装（自己）、失忆、女尊、恶役、钓系、阴湿男等题材。
+2. 世界穿梭：
+每个任务世界为一个独立的单元。玩家完成当前世界的“核心任务”后，可以选择结算并前往下一个世界。
+世界背景将会随机组合3-4个流行元素标签，增加世界的独特性和可玩性。例如：[世界背景]+[元素]+[元素]+[元素]
+随机从世界池和元素标签里抽取并组合成不同风格的世界。
+3. 任务系统：
+主线任务：核心目标是完成“原主”的夙愿。通常表现为“改变命运”、“复仇虐渣”、“攻略指定目标”、“达成某项成就”等。完成主线任务是通关世界的必要条件。规则：“原主”的夙愿将基于其核心诉求生成，绝对不会出现“让伤害过自己的人爱上自己”这类违背基本人性逻辑的诉求。
+支线任务： 在探索世界过程中随机触发。
+攻略任务：针对世界中的可攻略角色（男主/男配）发布。
+4. 角色扮演：
+玩家进入世界后，将完全继承“原主”的身份、记忆、身体与初始人际关系。
+玩家的行动将基于“原主”的身份展开，但拥有完全的自由意志。
+玩家性别默认为女性。在特殊世界观下，玩家可以在进入世界前选择第二性别。
+5. 系统辅助功能：
+系统商城：货币为“积分”。商城出售功能性道具、技能书、特殊剧情道具。
+爽度收集系统：玩家做出符合“爽文”逻辑的行为，屏幕顶部会出现“爽度+1”等提示。“爽度”自动转换为积分（1爽度=10积分）。只有完成原主夙愿，进度条才能达到100%。
+二、 攻略与互动机制
+1. 攻略对象（NPC）：每个世界将设置多名可攻略对象。禁忌规则：任何在原剧情中对“原主”有过实质性伤害行为的NPC，将被系统自动划分为“炮灰/可虐渣对象”，无法成为攻略目标。
+2. 普通npc：功能性NPC、炮灰/反派NPC。
+3. 剧情选择：游戏将以选项的形式呈现关键剧情节点。不同的选择将导向完全不同的剧情分支。
+三、 UI界面框架 (由前端代码处理，AI需提供数据)
+四、 执行要点：
+回复设置：每回合只回复一次并提供四个选择。`;
+
+        // --- 默认用户提示词 (用户可修改) ---
+        const defaultUserPrompt = `1. 文风要求通俗易懂，细腻描写场景、心理、情感。人物台词细腻，不要过于激动直白夸张，多使用动作和表情描写表达情绪。
+2. 禁止对主角使用“小东西”“小动物”“娇弱”“小野猫”等弱化类描写。
+3. 如有性爱行为，请直白，毫不隐讳地细致描写全过程，采用“微距镜头”透视肉体细节。
+4. 逻辑约束互动贴合性格与背景，不OOC。
+5. 玩家无法获知任何角色的背景秘密，除非是通过线索推理出来或对方主动透露。
+6. 注意！根据角色不同性格和攻略难度，每回合好感上涨需控制在2-7点，不可上涨过快。
+7. 剧情使用小说形式，善用转场。使用第一人称增强代入感。多使用“拉扯感”和“性张力”的描写。
+8. 注意每次回复剧情内容不得低于800字。注意减少名词堆叠，风格日常化、生活化。
+9. 禁止使用数据化/专业化/实验性描述。
+10. 禁止“你在玩火”这类古早霸总语录。
+11. 禁止所有学科术语及哲学联想。`;
+
+        // --- 技术指令 ---
+        const technicalInstruction = `
+IMPORTANT: 为了让游戏引擎能够渲染界面，你必须在每次回复的最后，附带一个 JSON 数据块。
+请严格按照以下 JSON 格式输出，不要包含在 markdown 代码块中，直接放在回复末尾，或者包裹在 \`\`\`json ... \`\`\` 中。
+
+【记忆系统规则】：
+1. 每次回复必须包含 "memory" 对象。
+2. "small_summary" (小总结)：总结此段剧情。包含：剧情序号、日期时间、地点、关键事件、核心对白、心理转折、前文伏笔。总字数≤130字，用符号分割。上帝视角第三人称，绝对客观。
+3. "big_summary" (大总结)：仅当用户提示要求生成时才生成。对上下文中提供的前5条 "small_summary" 进行概括总结。
+
+JSON 格式要求：
+{
+  "meta": { "time": "...", "weather": "...", "location": "..." },
+  "sidebar": {
+    "world": "世界名称",
+    "cool_value": 0, "cool_percent": 0,
+    "points": 100, "money": 0,
+    "name": "...", "role": "...", "ability": "...", "item": "...", "looks": "...", "body": "...", "luck": "..."
+  },
+  "characters": [
+    { "name": "角色名", "lock": true/false, "love": 0, "lust": 0, "relation": "..." }
+  ],
+  "tasks": [
+    { "type": "主线", "name": "...", "desc": "...", "progress": "...", "reward": "..." }
+  ],
+  "memory": {
+    "small_summary": "序号1 | 时间... | 地点... | 事件... (≤130字)",
+    "big_summary": "..." (可选，仅在被要求时生成)
+  },
+  "thoughts": "玩家的心声内容...",
+  "barrage": ["弹幕1", "弹幕2", "弹幕3", "弹幕4", "弹幕5"],
+  "choices": [
+    { "id": 1, "text": "选项A标题", "desc": "选项描述" },
+    { "id": 2, "text": "选项B标题", "desc": "选项描述" },
+    { "id": 3, "text": "选项C标题", "desc": "选项描述" },
+    { "id": 4, "text": "选项D标题", "desc": "选项描述" }
+  ]
+}
+`;
+
+        // --- 状态管理 ---
+        let conversationHistory = []; 
+        let memoryStore = { big: [], small: [] };
+        let turnCount = 0;
+        let isProcessing = false;
+        let barrageInterval = null;
+        const SAVE_KEY = 'fast_pass_save_v1';
+
+        // 商城相关
+        let shopItems = [];
+        // 功能类道具池
+        const functionalItems = [
+            { name: "体力药水", basePrice: 20, desc: "恢复30点体力，精神百倍" },
+            { name: "真言糖果", basePrice: 80, desc: "让NPC在下次对话中吐露真心话" },
+            { name: "万能钥匙", basePrice: 60, desc: "开启普通锁，探秘必备" },
+            { name: "易容面具", basePrice: 120, desc: "改变容貌一小时，方便潜入" },
+            { name: "读心卡", basePrice: 100, desc: "洞察NPC此刻的真实想法" }
+        ];
+        // 特殊剧情类道具池
+        const specialItems = [
+            { name: "免死金牌", basePrice: 500, desc: "抵消一次死亡结局，保命神器" },
+            { name: "幸运护符", basePrice: 200, desc: "提升下一次随机事件的运势" },
+            { name: "剧情回溯卡", basePrice: 50, desc: "让时光倒流，返回上一个选择节点（功能开发中）" },
+            { name: "魅力药水", basePrice: 100, desc: "下一次互动好感度加成50%" }
+        ];
+        // 技能书池 (type: 适用世界类型关键词，空代表通用)
+        const skillBooks = [
+            // --- 通用类 ---
+            { name: "格斗精通", type: ["现代", "末世", "悬疑", "无限", "星际", "江湖"], desc: "提升战斗力，关键时刻防身" },
+            { name: "医术", type: [], desc: "救死扶伤，增加生存率和好感" },
+            { name: "厨艺", type: [], desc: "抓住TA的胃，增加日常互动好感" },
+            { name: "口才", type: [], desc: "巧舌如簧，说服力大幅提升" },
+            { name: "心理学", type: [], desc: "洞察人心，更容易看穿谎言" },
+            { name: "观察力", type: [], desc: "发现被忽略的线索和细节" },
+            
+            // --- 古代/仙侠/玄幻 ---
+            { name: "琴棋书画", type: ["古代", "宫廷", "仙侠", "江湖", "民国"], desc: "提升古典才艺，增加气质" },
+            { name: "骑射", type: ["古代", "江湖", "兽世", "宫廷"], desc: "提升骑马射箭能力" },
+            { name: "古典礼仪", type: ["古代", "宫廷", "民国"], desc: "举止得体，不仅不被挑错还能加分" },
+            { name: "炼丹术", type: ["仙侠", "修真", "玄幻"], desc: "炼制丹药，辅助修炼或救人" },
+            { name: "阵法", type: ["仙侠", "修真", "玄幻"], desc: "布置或破解阵法" },
+            { name: "御剑术", type: ["仙侠", "修真"], desc: "御剑飞行，千里取人头" },
+            { name: "占卜", type: ["古代", "仙侠", "玄幻", "灵异"], desc: "趋吉避凶，预知未来片段" },
+
+            // --- 现代/科技/星际 ---
+            { name: "黑客技术", type: ["现代", "星际", "赛博", "未来", "商战"], desc: "入侵网络，获取情报" },
+            { name: "机甲驾驶", type: ["星际", "机甲", "未来"], desc: "驾驶机甲作战" },
+            { name: "枪械精通", type: ["现代", "末世", "无限", "星际", "悬疑"], desc: "百发百中，热武器专精" },
+            { name: "驾驶技术", type: ["现代", "末世", "赛车"], desc: "车技惊人，追逐战必备" },
+            { name: "机械维修", type: ["现代", "末世", "星际"], desc: "修理各种机械设备" },
+            { name: "金融理财", type: ["现代", "商战", "豪门"], desc: "钱生钱，成为首富指日可待" },
+
+            // --- 特殊/其他 ---
+            { name: "演技", type: ["娱乐圈", "宫廷", "宅斗", "替身"], desc: "人生如戏，全靠演技" },
+            { name: "骗术", type: ["江湖", "悬疑", "无限"], desc: "高超的谎言技巧" },
+            { name: "隐匿", type: ["悬疑", "末世", "无限", "江湖"], desc: "降低存在感，便于潜行" },
+            { name: "急救", type: ["现代", "末世", "无限", "悬疑"], desc: "快速处理伤口，维持生命" },
+            { name: "魔法", type: ["西幻", "魔法"], desc: "掌握元素之力" },
+            { name: "声乐", type: ["娱乐圈", "现代", "古代"], desc: "歌声动人，魅力四射" },
+            { name: "舞蹈", type: ["娱乐圈", "古代", "宫廷"], desc: "舞姿优美，惊艳四座" }
+        ];
+
+        let lastWorld = ""; // 记录上一次的世界名称，用于检测世界变化
+
+        // --- 初始化 ---
+        window.onload = function() {
+            loadSettings();
+            loadBeautySettings(); // 加载美化配置
+            
+            // generateShopItems(); // 移除初始生成，等待进入世界后生成
+            document.getElementById('shop-items-container').innerHTML = '<div style="text-align:center; padding:20px; color:#999;">进入世界后开启商城...</div>';
+            
+            if (!localStorage.getItem('api_key')) {
+                openSettings();
+            }
+            // 检查是否有存档，如果有，可以在控制台提示，或者在记忆面板显示
+            if (localStorage.getItem(SAVE_KEY)) {
+                console.log("Found existing save file.");
+            }
+        };
+
+        // --- 设置相关函数 ---
+        function openSettings() {
+            document.getElementById('settings-modal').classList.add('active');
+            const savedPrompt = localStorage.getItem('system_prompt');
+            document.getElementById('system-prompt').value = savedPrompt || defaultUserPrompt;
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-modal').classList.remove('active');
+        }
+
+        function loadSettings() {
+            document.getElementById('api-url').value = localStorage.getItem('api_url') || 'https://api.openai.com/v1';
+            document.getElementById('api-key').value = localStorage.getItem('api_key') || '';
+            document.getElementById('model-name').value = localStorage.getItem('model_name') || 'gpt-4o';
+        }
+
+        async function testConnection() {
+            const url = document.getElementById('api-url').value;
+            const key = document.getElementById('api-key').value;
+            const model = document.getElementById('model-name').value;
+
+            if (!key) { alert('请先输入 API Key'); return; }
+
+            const btn = document.querySelector('.btn-test');
+            const originalText = btn.innerText;
+            btn.innerText = "连接中...";
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${url}/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${key}`
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: [{ role: "user", content: "Hi" }],
+                        max_tokens: 5
+                    })
+                });
+
+                if (response.ok) {
+                    alert("✅ 连接成功！API 配置正确。");
+                } else {
+                    const errData = await response.json().catch(() => ({}));
+                    alert(`❌ 连接失败: ${response.status} ${response.statusText}\n${JSON.stringify(errData)}`);
+                }
+            } catch (e) {
+                alert(`❌ 网络错误: ${e.message}\n请检查 URL 是否正确，或是否存在跨域问题。`);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function saveAndRestart() {
+            const url = document.getElementById('api-url').value;
+            const key = document.getElementById('api-key').value;
+            const model = document.getElementById('model-name').value;
+            const prompt = document.getElementById('system-prompt').value;
+
+            if (!key) { alert('请输入 API Key'); return; }
+
+            localStorage.setItem('api_url', url);
+            localStorage.setItem('api_key', key);
+            localStorage.setItem('model_name', model);
+            localStorage.setItem('system_prompt', prompt);
+
+            const saveBtn = document.getElementById('save-btn');
+            saveBtn.innerText = "正在初始化...";
+            saveBtn.disabled = true;
+
+            closeSettings();
+            
+            setTimeout(() => {
+                startGame().finally(() => {
+                    saveBtn.innerText = "保存并开始游戏";
+                    saveBtn.disabled = false;
+                });
+            }, 300);
+        }
+
+        // --- 存档/读档逻辑 ---
+        function saveGameData(lastJsonData, storyHtml) {
+            const saveData = {
+                memoryStore: memoryStore,
+                conversationHistory: conversationHistory,
+                turnCount: turnCount,
+                lastJsonData: lastJsonData,
+                storyHtml: storyHtml,
+                timestamp: new Date().getTime()
+            };
+            localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+            console.log("Game saved automatically.");
+        }
+
+        function loadGameData() {
+            const saveStr = localStorage.getItem(SAVE_KEY);
+            if (!saveStr) {
+                alert("没有找到旧的记忆存档。");
+                return;
+            }
+
+            if (!confirm("确定要读取旧记忆吗？当前未保存的进度将丢失。")) return;
+
+            try {
+                const save = JSON.parse(saveStr);
+                
+                // 恢复状态
+                memoryStore = save.memoryStore || { big: [], small: [] };
+                conversationHistory = save.conversationHistory || [];
+                turnCount = save.turnCount || 0;
+                
+                // 恢复 UI
+                document.getElementById('story-text').innerHTML = save.storyHtml || '';
+                if (save.lastJsonData) {
+                    updateUI(save.lastJsonData);
+                }
+                
+                // 切换到记忆标签页看一眼
+                renderMemoryList();
+                
+                alert("记忆读取成功！");
+                
+            } catch (e) {
+                console.error(e);
+                alert("存档文件损坏，无法读取。");
+            }
+        }
+
+        function clearGameData() {
+            if (confirm("确定要清空所有存档吗？此操作不可恢复。")) {
+                localStorage.removeItem(SAVE_KEY);
+                memoryStore = { big: [], small: [] };
+                document.getElementById('memory-list').innerHTML = '<p style="color: var(--secondary-text); text-align: center; font-size:12px;">暂无记忆记录</p>';
+                alert("存档已清空。");
+            }
+        }
+
+        // --- 游戏逻辑 ---
+        async function startGame() {
+            // 重置状态
+            conversationHistory = [];
+            memoryStore = { big: [], small: [] };
+            turnCount = 0;
+            
+            document.getElementById('story-text').innerHTML = '';
+            document.getElementById('choices-area').innerHTML = '';
+            document.getElementById('player-thought').style.display = 'none';
+            document.getElementById('memory-list').innerHTML = '<p style="color: var(--secondary-text); text-align: center; font-size:12px;">暂无记忆记录</p>';
+            
+            // 重置商城
+            generateShopItems();
+
+            // 初始对话
+            conversationHistory.push({ role: "user", content: "游戏开始。请生成第一步：世界选择。" });
+
+            await fetchAIResponse();
+        }
+
+        async function makeChoice(choiceId, choiceText) {
+            if (isProcessing) return;
+            
+            // 显示用户选择
+            const choicesDiv = document.getElementById('choices-area');
+            choicesDiv.innerHTML = `<div style="padding:15px; border:1px solid var(--accent-color-1); border-radius:8px; color:var(--accent-color-1); text-align:center; background:rgba(255,255,255,0.5);">你选择了：${choiceText}</div>`;
+
+            let nextPrompt = `我选择了：${choiceText}。请继续剧情。`;
+            
+            turnCount++;
+            
+            // 每10回合刷新商城
+            if (turnCount % 10 === 0) {
+                generateShopItems();
+            }
+
+            if (turnCount > 0 && turnCount % 5 === 0) {
+                nextPrompt += `\n\n【系统指令】：当前已积累5条短期记忆。请在JSON的 "memory" 对象中生成 "big_summary"，对上下文中的前5条 "small_summary" 进行概括总结。本次回复仍需包含当前回合的 "small_summary"。`;
+            }
+
+            conversationHistory.push({ role: "user", content: nextPrompt });
+            await fetchAIResponse();
+        }
+
+        // --- 核心：构建动态上下文 ---
+        function buildContext() {
+            const userCustomPrompt = localStorage.getItem('system_prompt') || defaultUserPrompt;
+            // 拼接：核心规则 + 用户自定义规则 + 技术指令
+            const fullSystemPrompt = coreRules + "\n\n【风格与执行要求】:\n" + userCustomPrompt + "\n" + technicalInstruction;
+            
+            let messages = [];
+            
+            // 1. 系统提示词
+            messages.push({ role: "system", content: fullSystemPrompt });
+
+            // 2. 注入记忆 (RAG 核心)
+            if (memoryStore.big.length > 0) {
+                messages.push({ 
+                    role: "system", 
+                    content: `【长期记忆 (Big Summaries)】:\n${memoryStore.big.join("\n")}` 
+                });
+            }
+
+            // 修改：因为我们已经删除了被总结的小记忆，所以现在 memoryStore.small 里剩下的就是“未被总结”的记忆
+            // 直接全部发送即可，不需要切片
+            if (memoryStore.small.length > 0) {
+                messages.push({ 
+                    role: "system", 
+                    content: `【短期记忆 (Small Summaries)】:\n${memoryStore.small.join("\n")}` 
+                });
+            }
+
+            // 3. 注入最近的实际对话
+            const recentTurns = conversationHistory.slice(-4); 
+            messages = messages.concat(recentTurns);
+
+            return messages;
+        }
+
+        async function fetchAIResponse() {
+            isProcessing = true;
+            document.getElementById('loading').classList.add('active');
+            
+            const apiUrl = localStorage.getItem('api_url');
+            const apiKey = localStorage.getItem('api_key');
+            const model = localStorage.getItem('model_name');
+
+            const messagesToSend = buildContext();
+
+            try {
+                const response = await fetch(`${apiUrl}/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: messagesToSend,
+                        temperature: 0.8
+                    })
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`API Error ${response.status}: ${errText}`);
+                }
+
+                const data = await response.json();
+                if (!data.choices || data.choices.length === 0) {
+                    throw new Error("API 返回数据格式错误 (No choices)");
+                }
+
+                const aiContent = data.choices[0].message.content;
+                
+                conversationHistory.push({ role: "assistant", content: aiContent });
+                
+                parseAndRender(aiContent);
+
+            } catch (error) {
+                console.error(error);
+                alert("请求出错: " + error.message);
+                document.getElementById('story-text').innerHTML += `<p style="color:red; border:1px solid red; padding:10px;">❌ 系统连接中断: ${error.message}<br>请检查 API Key 或网络设置。</p>`;
+                document.getElementById('choices-area').innerHTML = `
+                    <button class="choice-btn" onclick="fetchAIResponse()">
+                        <strong>重试</strong>
+                    </button>
+                `;
+            } finally {
+                isProcessing = false;
+                document.getElementById('loading').classList.remove('active');
+            }
+        }
+
+        // --- 解析与渲染 ---
+        function parseAndRender(content) {
+            let jsonStr = "";
+            let storyText = content;
+
+            const codeBlockRegex = /```json\s*([\s\S]*?)\s*```/;
+            const match = content.match(codeBlockRegex);
+
+            if (match) {
+                jsonStr = match[1];
+                storyText = content.replace(match[0], ""); 
+            } else {
+                const lastOpenBrace = content.lastIndexOf('{');
+                const lastCloseBrace = content.lastIndexOf('}');
+                if (lastOpenBrace !== -1 && lastCloseBrace > lastOpenBrace) {
+                    const potentialJson = content.substring(lastOpenBrace, lastCloseBrace + 1);
+                    if (potentialJson.includes('"sidebar"') || potentialJson.includes('"choices"')) {
+                        jsonStr = potentialJson;
+                        storyText = content.substring(0, lastOpenBrace);
+                    }
+                }
+            }
+
+            storyText = storyText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            storyText = storyText.replace(/\n/g, '<br>');
+            
+            // 更新 DOM
+            const storyDiv = document.getElementById('story-text');
+            storyDiv.innerHTML = storyText;
+            window.scrollTo(0, 0);
+
+            let parsedData = null;
+            if (jsonStr) {
+                try {
+                    parsedData = JSON.parse(jsonStr);
+                    updateUI(parsedData);
+                } catch (e) {
+                    console.error("JSON Parse Error", e);
+                    fallbackChoices();
+                }
+            } else {
+                fallbackChoices();
+            }
+
+            // 自动存档
+            saveGameData(parsedData, storyText);
+        }
+
+        function fallbackChoices() {
+            document.getElementById('choices-area').innerHTML = `
+                <button class="choice-btn" onclick="makeChoice(1, '继续')">
+                    <strong>继续</strong>
+                    <span>(系统未能自动解析选项，点击继续让故事发展)</span>
+                </button>
+            `;
+        }
+
+        function updateUI(data) {
+            if (!data) return;
+
+            // 检测世界变化，刷新商城
+            if (data.sidebar && data.sidebar.world) {
+                const currentWorld = data.sidebar.world;
+                // 如果世界名称有效，且与上一次不同，且不是初始加载的“加载中...”
+                if (currentWorld !== "加载中..." && currentWorld !== "未知" && currentWorld !== lastWorld) {
+                    console.log(`World changed from [${lastWorld}] to [${currentWorld}]. Refreshing shop.`);
+                    lastWorld = currentWorld;
+                    generateShopItems();
+                }
+            }
+
+            // Meta
+            if (data.meta) {
+                document.getElementById('meta-info').innerHTML = `
+                    <span>${data.meta.time || ''}</span>
+                    <span>${data.meta.weather || ''}</span>
+                    <span>${data.meta.location || ''}</span>
+                `;
+            }
+
+            // Sidebar - Info
+            if (data.sidebar) {
+                document.getElementById('val-world').innerText = data.sidebar.world || '未知';
+                document.getElementById('val-cool').innerText = data.sidebar.cool_value || 0;
+                document.getElementById('bar-cool').style.width = (data.sidebar.cool_percent || 0) + '%';
+                document.getElementById('val-points').innerText = data.sidebar.points || 0;
+                document.getElementById('val-money').innerText = data.sidebar.money || 0;
+                document.getElementById('val-name').innerText = data.sidebar.name || '???';
+                document.getElementById('val-role').innerText = data.sidebar.role || '???';
+                document.getElementById('val-ability').innerText = data.sidebar.ability || '无';
+                document.getElementById('val-item').innerText = data.sidebar.item || '无';
+                document.getElementById('val-looks').innerText = data.sidebar.looks || '???';
+                document.getElementById('val-body').innerText = data.sidebar.body || '???';
+                document.getElementById('val-luck').innerText = data.sidebar.luck || '?';
+            }
+
+            // Sidebar - Characters
+            if (data.characters && data.characters.length > 0) {
+                let charHtml = '';
+                data.characters.forEach(char => {
+                    charHtml += `
+                    <div class="character-item">
+                        <strong>${char.name} ${char.lock ? '🔒' : ''}</strong>
+                        <div class="info-item">好感：<span>${char.love}/100</span></div>
+                        <div class="info-item">情欲：<span>${char.lust}/100</span></div>
+                        <div class="info-item">关系：<span>${char.relation}</span></div>
+                    </div>`;
+                });
+                document.getElementById('character-list').innerHTML = charHtml;
+            }
+
+            // Sidebar - Tasks
+            if (data.tasks && data.tasks.length > 0) {
+                let taskHtml = '';
+                data.tasks.forEach(task => {
+                    taskHtml += `
+                    <div class="task-item">
+                        <strong>【${task.type}】${task.name}</strong>
+                        <div class="info-item" style="margin-top:5px;">描述：<span>${task.desc}</span></div>
+                        <div class="info-item">进度：<span>${task.progress}</span></div>
+                        <div class="info-item">奖励：<span>${task.reward}</span></div>
+                    </div>`;
+                });
+                document.getElementById('task-list').innerHTML = taskHtml;
+            }
+
+            // Sidebar - Memory (核心修改逻辑)
+            if (data.memory) {
+                // 1. 先添加当前回合的小总结
+                if (data.memory.small_summary) {
+                    memoryStore.small.push(data.memory.small_summary);
+                }
+                
+                // 2. 如果存在大总结，说明到了第5回合的结算点
+                if (data.memory.big_summary) {
+                    memoryStore.big.push(data.memory.big_summary);
+                    
+                    // 3. 清空前5次小总结（它们已被大总结概括）
+                    // 此时数组中应该包含之前积累的5条 + 刚刚添加的第6条(当前回合)
+                    // 所以我们需要删除数组开头的5个元素
+                    if (memoryStore.small.length >= 5) {
+                        memoryStore.small.splice(0, 5);
+                    } else {
+                        // 容错：不足5条则全清
+                        memoryStore.small = [];
+                    }
+                }
+                renderMemoryList();
+            }
+
+            // Thoughts
+            const thoughtDiv = document.getElementById('player-thought');
+            if (data.thoughts) {
+                thoughtDiv.style.display = 'block';
+                thoughtDiv.innerText = data.thoughts;
+            } else {
+                thoughtDiv.style.display = 'none';
+            }
+
+            // Choices
+            const choicesDiv = document.getElementById('choices-area');
+            choicesDiv.innerHTML = '';
+            if (data.choices && data.choices.length > 0) {
+                data.choices.forEach(choice => {
+                    const btn = document.createElement('button');
+                    btn.className = 'choice-btn';
+                    btn.innerHTML = `<strong>${choice.text}</strong><span style="color: var(--secondary-text);">${choice.desc || ''}</span>`;
+                    btn.onclick = () => makeChoice(choice.id, choice.text);
+                    choicesDiv.appendChild(btn);
+                });
+            } else {
+                fallbackChoices();
+            }
+
+            // Barrage
+            if (data.barrage && data.barrage.length > 0) {
+                startBarrage(data.barrage);
+            }
+        }
+
+        function renderMemoryList() {
+            const container = document.getElementById('memory-list');
+            let html = '';
+            
+            // 渲染大总结
+            memoryStore.big.forEach((mem, index) => {
+                html += `<div class="memory-item big"><span class="memory-tag tag-big">大总结 ${index + 1}</span><br>${mem}</div>`;
+            });
+
+            // 渲染剩余的小总结
+            // 为了让序号连续，小总结的序号 = (大总结数量 * 5) + 当前小总结索引 + 1
+            const offset = memoryStore.big.length * 5;
+            
+            memoryStore.small.forEach((mem, index) => {
+                html += `<div class="memory-item small"><span class="memory-tag tag-small">剧情 ${offset + index + 1}</span><br>${mem}</div>`;
+            });
+
+            if (html === '') html = '<p style="color: var(--secondary-text); text-align: center; font-size:12px; margin-top:20px;">暂无记忆记录</p>';
+            container.innerHTML = html;
+        }
+
+        // --- 弹幕系统 ---
+        let barrageVisible = true;
+        function toggleBarrage() {
+            const container = document.getElementById('barrage-container');
+            barrageVisible = !barrageVisible;
+            container.style.display = barrageVisible ? 'block' : 'none';
+        }
+
+        function startBarrage(messages) {
+            const container = document.getElementById('barrage-container');
+            
+            // 清除之前的循环，避免重叠
+            if (barrageInterval) clearInterval(barrageInterval);
+            
+            if (!messages || messages.length === 0) return;
+
+            let i = 0;
+            barrageInterval = setInterval(() => {
+                // 循环播放逻辑
+                if (i >= messages.length) {
+                    i = 0;
+                }
+                
+                if (!barrageVisible) return;
+
+                const item = document.createElement('div');
+                item.className = 'barrage-item';
+                item.textContent = messages[i];
+                item.style.top = Math.random() * 80 + 'px';
+                item.style.animationDuration = (Math.random() * 5 + 8) + 's'; 
+                container.appendChild(item);
+
+                setTimeout(() => { item.remove(); }, 13000);
+                i++;
+            }, 800);
+        }
+
+        // --- UI 交互 ---
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.querySelector('.sidebar-toggle').classList.toggle('open');
+        }
+
+        function switchTab(evt, tabName) {
+            let i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("content-panel");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("active");
+            }
+            tablinks = document.getElementsByClassName("nav-tab");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+
+        // --- 商城逻辑 ---
+        function generateShopItems() {
+            const currentWorld = document.getElementById('val-world').innerText || "";
+            if (!currentWorld || currentWorld === "加载中..." || currentWorld === "未知") {
+                return; // 世界未确定前不生成
+            }
+
+            shopItems = [];
+            
+            // 1. 筛选适合当前世界的技能书
+            let availableSkills = skillBooks.filter(skill => {
+                if (!skill.type || skill.type.length === 0) return true; // 通用技能
+                return skill.type.some(keyword => currentWorld.includes(keyword));
+            });
+            // 如果没匹配到，就用通用技能兜底
+            if (availableSkills.length === 0) {
+                availableSkills = skillBooks.filter(skill => !skill.type || skill.type.length === 0);
+            }
+
+            // 2. 随机生成商品
+            // 抽取 1-2 个功能道具
+            const funcCount = 1 + Math.floor(Math.random() * 2);
+            for(let i=0; i<funcCount; i++) {
+                const item = functionalItems[Math.floor(Math.random() * functionalItems.length)];
+                shopItems.push({ ...item, price: item.basePrice, type: '功能' });
+            }
+
+            // 抽取 1 个特殊道具
+            const specialItem = specialItems[Math.floor(Math.random() * specialItems.length)];
+            shopItems.push({ ...specialItem, price: specialItem.basePrice, type: '特殊' });
+
+            // 抽取 1-2 个技能书 (随机熟练度/等级)
+            const skillCount = 1 + Math.floor(Math.random() * 2);
+            for(let i=0; i<skillCount; i++) {
+                if (availableSkills.length === 0) break;
+                const skillIndex = Math.floor(Math.random() * availableSkills.length);
+                const skill = availableSkills[skillIndex];
+                
+                // 随机等级：初级、中级、高级
+                const levels = [
+                    { label: "初级", mul: 1 }, 
+                    { label: "中级", mul: 2.5 }, 
+                    { label: "高级", mul: 5 }
+                ];
+                const level = levels[Math.floor(Math.random() * levels.length)];
+                
+                shopItems.push({
+                    name: `${skill.name} (${level.label})`,
+                    desc: skill.desc,
+                    price: Math.floor(100 * level.mul), // 基础100积分
+                    type: '技能'
+                });
+                
+                // 避免重复抽取同一技能
+                availableSkills.splice(skillIndex, 1);
+            }
+
+            console.log("Shop refreshed based on world:", currentWorld, shopItems);
+            renderShop();
+        }
+
+        function renderShop() {
+            const container = document.getElementById('shop-items-container');
+            if (!container) return;
+            
+            // 更新积分显示
+            const currentPoints = parseInt(document.getElementById('val-points').innerText) || 0;
+            const pointsDisplay = document.getElementById('shop-points');
+            if (pointsDisplay) pointsDisplay.innerText = currentPoints;
+
+            // 更新倒计时显示
+            const refreshDisplay = document.getElementById('shop-refresh-count');
+            if (refreshDisplay) {
+                const remainder = 10 - (turnCount % 10);
+                refreshDisplay.innerText = remainder;
+            }
+
+            let html = '';
+            if (shopItems.length === 0) {
+                html = '<div style="text-align:center; padding:20px; color:#999;">商城正在进货中...</div>';
+            } else {
+                shopItems.forEach(item => {
+                    html += `
+                    <div class="shop-item">
+                        <div class="shop-item-info">
+                            <strong>${item.name}</strong>
+                            <p>${item.desc}</p>
+                        </div>
+                        <div class="shop-item-action">
+                            <div class="shop-price">${item.price} 积分</div>
+                            <button class="btn-buy" onclick="buyItem('${item.name}', ${item.price})">购买</button>
+                        </div>
+                    </div>`;
+                });
+            }
+            container.innerHTML = html;
+        }
+
+        function openShop() {
+            renderShop(); // 打开时刷新显示
+            document.getElementById('shop-modal').classList.add('active');
+        }
+
+        function closeShop() {
+            document.getElementById('shop-modal').classList.remove('active');
+        }
+
+        function openBeautify() {
+            document.getElementById('beautify-modal').classList.add('active');
+        }
+
+        function closeBeautify() {
+            document.getElementById('beautify-modal').classList.remove('active');
+            // 关闭时可以清理裁剪器
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+                document.getElementById('crop-wrapper').style.display = 'none';
+                document.getElementById('crop-btn-area').style.display = 'none';
+            }
+        }
+        
+        // --- 美化设置逻辑 (含裁剪) ---
+        let cropper = null;
+        let currentCropTarget = ''; // 'bg', 'music_bg', 'music_cover'
+
+        function initCropper(imageSrc, aspectRatio = NaN) {
+            const img = document.getElementById('crop-image');
+            img.src = imageSrc;
+            
+            // 显示覆盖层
+            document.getElementById('crop-overlay').style.display = 'flex';
+
+            if (cropper) cropper.destroy();
+            
+            cropper = new Cropper(img, {
+                aspectRatio: aspectRatio,
+                viewMode: 1,
+                autoCropArea: 1,
+                background: false, // 黑色背景更清晰
+            });
+        }
+
+        function handleBgSelect(input) {
+            if (input.files && input.files[0]) {
+                currentCropTarget = 'bg';
+                const reader = new FileReader();
+                reader.onload = (e) => initCropper(e.target.result, NaN);
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function cancelCrop() {
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+            document.getElementById('crop-overlay').style.display = 'none';
+            // 清空所有 file input
+            document.querySelectorAll('#beautify-modal input[type="file"]').forEach(el => el.value = '');
+            currentCropTarget = '';
+        }
+
+        function applyCrop() {
+            if (!cropper) return;
+            
+            const canvas = cropper.getCroppedCanvas();
+            if (canvas) {
+                const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.8); 
+                
+                if (currentCropTarget === 'bg') {
+                    const bgLayer = document.getElementById('bg-layer');
+                    bgLayer.style.backgroundImage = `url(${croppedDataUrl})`;
+                    bgLayer.classList.add('custom-bg');
+                    document.body.style.background = 'transparent';
+                    alert("✅ 全局背景图已应用！");
+                } else if (currentCropTarget === 'music_bg') {
+                    document.documentElement.style.setProperty('--music-widget-bg-img', `url(${croppedDataUrl})`);
+                    alert("✅ 播放器背景已应用！");
+                } else if (currentCropTarget === 'music_cover') {
+                    document.documentElement.style.setProperty('--music-cover-img', `url(${croppedDataUrl})`);
+                    document.getElementById('music-cover').innerText = ''; // 清除文字 emoji
+                    alert("✅ 播放器图标已应用！");
+                }
+                
+                cancelCrop();
+                saveBeautySettings();
+            }
+        }
+        
+        function updateBlur(val) {
+            document.getElementById('bg-layer').style.filter = `blur(${val}px)`;
+            document.getElementById('blur-val').innerText = val + 'px';
+            saveBeautySettings();
+        }
+        
+        function handleDecorationSelect(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const layer = document.getElementById('bg-decoration-layer');
+                    layer.style.backgroundImage = `url(${e.target.result})`;
+                    saveBeautySettings();
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        
+        function clearDecoration() {
+            document.getElementById('bg-decoration-layer').style.backgroundImage = 'none';
+            saveBeautySettings();
+            alert("装饰层已清除");
+        }
+        
+        function updateDecorationOpacity(val) {
+            document.getElementById('bg-decoration-layer').style.opacity = val;
+            document.getElementById('decoration-opacity-val').innerText = val;
+            saveBeautySettings();
+        }
+
+        function updateColor(varName, val) {
+            document.documentElement.style.setProperty(varName, val);
+            saveBeautySettings();
+        }
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+
+        function updateSidebarColor() {
+            const colorHex = document.getElementById('sidebar-color-picker').value;
+            const opacity = document.getElementById('sidebar-opacity').value;
+            const rgb = hexToRgb(colorHex);
+            
+            if (rgb) {
+                const rgba = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`;
+                document.documentElement.style.setProperty('--sidebar-bg', rgba);
+                document.getElementById('sidebar-opacity-val').innerText = opacity;
+                saveBeautySettings();
+            }
+        }
+
+        function updateTopBarColor() {
+            const colorHex = document.getElementById('topbar-color-picker').value;
+            const opacity = document.getElementById('topbar-opacity').value;
+            const rgb = hexToRgb(colorHex);
+            
+            if (rgb) {
+                const rgba = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`;
+                document.documentElement.style.setProperty('--topbar-color', rgba);
+                document.getElementById('topbar-opacity-val').innerText = opacity;
+                saveBeautySettings();
+            }
+        }
+
+        function updateIcon(key, value, isImage) {
+            if (key === 'thought') {
+                if (isImage) {
+                    document.documentElement.style.setProperty('--icon-thought-content', '""');
+                    document.documentElement.style.setProperty('--icon-thought-url', `url(${value})`);
+                } else {
+                    document.documentElement.style.setProperty('--icon-thought-content', `"${value}"`);
+                    document.documentElement.style.setProperty('--icon-thought-url', 'none');
+                }
+            } else {
+                const el = document.getElementById(`icon-${key}`);
+                if (el) {
+                    if (isImage) {
+                        el.innerHTML = `<img src="${value}" style="width:24px;height:24px;object-fit:contain;">`;
+                    } else {
+                        el.innerText = value;
+                    }
+                }
+                
+                // 特殊处理：如果是设置图标，同步更新欢迎页面的图标
+                if (key === 'settings') {
+                    const introIcon = document.getElementById('intro-settings-icon');
+                    if (introIcon) {
+                        if (isImage) {
+                            introIcon.innerHTML = `<img src="${value}" style="width:20px;height:20px;object-fit:contain;vertical-align:middle;">`;
+                        } else {
+                            introIcon.innerText = value;
+                        }
+                    }
+                }
+            }
+            saveBeautySettings();
+        }
+
+        function handleIconUpload(key, input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    updateIcon(key, e.target.result, true);
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function updateStoryColor() {
+            const colorHex = document.getElementById('story-color-picker').value;
+            const opacity = document.getElementById('story-opacity').value;
+            const rgb = hexToRgb(colorHex);
+            
+            if (rgb) {
+                const rgba = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`;
+                document.documentElement.style.setProperty('--story-bg', rgba);
+                document.getElementById('story-opacity-val').innerText = opacity;
+                saveBeautySettings();
+            }
+        }
+
+        // --- 心声 设置逻辑 ---
+        function updateThoughtColor() {
+            const bgHex = document.getElementById('thought-bg-picker').value;
+            const opacity = document.getElementById('thought-opacity').value;
+            const textHex = document.getElementById('thought-text-picker').value;
+            
+            const rgb = hexToRgb(bgHex);
+            if (rgb) {
+                const rgba = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`;
+                document.documentElement.style.setProperty('--thought-bg', rgba);
+                document.getElementById('thought-opacity-val').innerText = opacity;
+            }
+            
+            document.documentElement.style.setProperty('--thought-text', textHex);
+            saveBeautySettings();
+        }
+
+        // --- 音乐播放器美化逻辑 ---
+        function handleMusicWidgetBgSelect(input) {
+            if (input.files && input.files[0]) {
+                currentCropTarget = 'music_bg';
+                const reader = new FileReader();
+                reader.onload = (e) => initCropper(e.target.result, NaN);
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        
+        function clearMusicWidgetBg() {
+            document.documentElement.style.setProperty('--music-widget-bg-img', 'none');
+            saveBeautySettings();
+            alert("播放器背景已清除");
+        }
+        
+        function updateMusicWidgetColor() {
+            const colorHex = document.getElementById('music-widget-bg-picker').value;
+            const opacity = document.getElementById('music-widget-opacity').value;
+            const rgb = hexToRgb(colorHex);
+            
+            if (rgb) {
+                const rgba = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`;
+                document.documentElement.style.setProperty('--music-widget-bg-color', rgba);
+                document.getElementById('music-widget-opacity-val').innerText = opacity;
+                saveBeautySettings();
+            }
+        }
+        
+        function updatePlayBtnColor() {
+            const bgHex = document.getElementById('play-btn-bg-picker').value;
+            const borderHex = document.getElementById('play-btn-border-picker').value;
+            
+            document.documentElement.style.setProperty('--play-btn-bg-color', bgHex);
+            document.documentElement.style.setProperty('--play-btn-border', `2px solid ${borderHex}`);
+            
+            saveBeautySettings();
+        }
+        
+        function handleMusicCoverSelect(input) {
+            if (input.files && input.files[0]) {
+                currentCropTarget = 'music_cover';
+                const reader = new FileReader();
+                reader.onload = (e) => initCropper(e.target.result, 1); // 1:1 裁剪
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        
+        function clearMusicCover() {
+            document.documentElement.style.setProperty('--music-cover-img', 'none');
+            document.getElementById('music-cover').innerText = '🎵';
+            saveBeautySettings();
+            alert("播放器图标已恢复默认");
+        }
+
+        // --- 美化持久化存储 ---
+        const BEAUTY_KEY = 'fast_pass_beauty_v1';
+        
+        function saveBeautySettings() {
+            // 获取当前的 CSS 变量值
+            const style = getComputedStyle(document.documentElement);
+            const bgLayer = document.getElementById('bg-layer');
+            const bgImage = bgLayer.style.backgroundImage;
+            const isCustomBg = bgLayer.classList.contains('custom-bg');
+            const blurVal = bgLayer.style.filter.replace('blur(', '').replace('px)', '') || 0;
+            
+            // 装饰层
+            const decorLayer = document.getElementById('bg-decoration-layer');
+            const decorImage = decorLayer.style.backgroundImage;
+            const decorOpacity = decorLayer.style.opacity;
+
+            const settings = {
+                // 背景图
+                bgImage: (bgImage && bgImage !== 'none' && !bgImage.includes('data:image/svg')) ? bgImage : null,
+                isCustomBg: isCustomBg,
+                blur: blurVal,
+                
+                // 装饰层
+                decorImage: (decorImage && decorImage !== 'none') ? decorImage : null,
+                decorOpacity: decorOpacity || 1,
+                
+                // 颜色变量
+                primaryText: style.getPropertyValue('--primary-text').trim(),
+                secondaryText: style.getPropertyValue('--secondary-text').trim(),
+                accentColor: style.getPropertyValue('--accent-color-1').trim(),
+                memorySmall: style.getPropertyValue('--memory-small').trim(),
+                memoryBig: style.getPropertyValue('--memory-big').trim(),
+                
+                // 面板背景
+                sidebarBg: style.getPropertyValue('--sidebar-bg').trim(),
+                topBarColor: style.getPropertyValue('--topbar-color').trim(),
+                topBarImg: style.getPropertyValue('--topbar-img').trim(),
+                storyBg: style.getPropertyValue('--story-bg').trim(),
+                
+                // 新增：心声
+                thoughtBg: style.getPropertyValue('--thought-bg').trim(),
+                thoughtText: style.getPropertyValue('--thought-text').trim(),
+                
+                // 新增：音乐播放器
+                musicWidgetBgColor: style.getPropertyValue('--music-widget-bg-color').trim(),
+                musicWidgetBgImg: style.getPropertyValue('--music-widget-bg-img').trim(),
+                musicCoverImg: style.getPropertyValue('--music-cover-img').trim(),
+                playBtnBgColor: style.getPropertyValue('--play-btn-bg-color').trim(),
+                playBtnBorder: style.getPropertyValue('--play-btn-border').trim(),
+                
+                icons: (() => {
+                    const iconState = {};
+                    ['shop', 'beautify', 'settings', 'sidebar', 'thought', 'music'].forEach(k => {
+                        if (k === 'thought') {
+                            const content = style.getPropertyValue('--icon-thought-content').trim();
+                            const url = style.getPropertyValue('--icon-thought-url').trim();
+                            if (url && url !== 'none') {
+                                iconState[k] = { type: 'image', value: url.slice(4, -1).replace(/["']/g, "") };
+                            } else {
+                                iconState[k] = { type: 'text', value: content.replace(/["']/g, "") || '💭' };
+                            }
+                        } else {
+                            const el = document.getElementById(`icon-${k}`);
+                            if (el) {
+                                const img = el.querySelector('img');
+                                if (img) {
+                                    iconState[k] = { type: 'image', value: img.src };
+                                } else {
+                                    iconState[k] = { type: 'text', value: el.innerText };
+                                }
+                            }
+                        }
+                    });
+                    return iconState;
+                })(),
+
+                // UI 状态值 (为了回显)
+                uiState: {
+                    sidebarColor: document.getElementById('sidebar-color-picker').value,
+                    sidebarOpacity: document.getElementById('sidebar-opacity').value,
+                    
+                    topBarColor: document.getElementById('topbar-color-picker').value,
+                    topBarOpacity: document.getElementById('topbar-opacity').value,
+                    
+                    storyColor: document.getElementById('story-color-picker').value,
+                    storyOpacity: document.getElementById('story-opacity').value,
+                    
+                    thoughtBgColor: document.getElementById('thought-bg-picker').value,
+                    thoughtOpacity: document.getElementById('thought-opacity').value,
+                    thoughtTextColor: document.getElementById('thought-text-picker').value
+                }
+            };
+
+            try {
+                localStorage.setItem(BEAUTY_KEY, JSON.stringify(settings));
+            } catch (e) {
+                console.error("Save beauty settings failed:", e);
+                // 如果存不下，可能是背景图太大，尝试不存背景图
+                if (settings.bgImage) {
+                    settings.bgImage = null;
+                    try {
+                        localStorage.setItem(BEAUTY_KEY, JSON.stringify(settings));
+                        alert("⚠️ 背景图太大无法保存，但颜色设置已保存。");
+                    } catch(e2) {}
+                }
+            }
+        }
+
+        function loadBeautySettings() {
+            const json = localStorage.getItem(BEAUTY_KEY);
+            if (!json) return;
+
+            try {
+                const settings = JSON.parse(json);
+                const root = document.documentElement;
+
+                // 恢复 CSS 变量
+                if (settings.primaryText) root.style.setProperty('--primary-text', settings.primaryText);
+                if (settings.secondaryText) root.style.setProperty('--secondary-text', settings.secondaryText);
+                if (settings.accentColor) root.style.setProperty('--accent-color-1', settings.accentColor);
+                if (settings.memorySmall) root.style.setProperty('--memory-small', settings.memorySmall);
+                if (settings.memoryBig) root.style.setProperty('--memory-big', settings.memoryBig);
+                
+                if (settings.sidebarBg) root.style.setProperty('--sidebar-bg', settings.sidebarBg);
+                if (settings.topBarColor) root.style.setProperty('--topbar-color', settings.topBarColor);
+                if (settings.topBarImg) root.style.setProperty('--topbar-img', settings.topBarImg);
+                if (settings.storyBg) root.style.setProperty('--story-bg', settings.storyBg);
+                
+                // 新增恢复
+                if (settings.thoughtBg) root.style.setProperty('--thought-bg', settings.thoughtBg);
+                if (settings.thoughtText) root.style.setProperty('--thought-text', settings.thoughtText);
+
+                // 恢复图标
+                if (settings.icons) {
+                    Object.keys(settings.icons).forEach(k => {
+                        const data = settings.icons[k];
+                        updateIcon(k, data.value, data.type === 'image');
+                    });
+                } else {
+                    // 如果没有保存的图标设置，确保欢迎页图标默认是 ⚙️
+                    const introIcon = document.getElementById('intro-settings-icon');
+                    if (introIcon) introIcon.innerText = '⚙️';
+                }
+
+                // 恢复背景
+                const bgLayer = document.getElementById('bg-layer');
+                if (settings.bgImage) {
+                    bgLayer.style.backgroundImage = settings.bgImage;
+                    if (settings.isCustomBg) bgLayer.classList.add('custom-bg');
+                    document.body.style.background = 'transparent';
+                }
+                if (settings.blur) {
+                    bgLayer.style.filter = `blur(${settings.blur}px)`;
+                    document.getElementById('blur-val').innerText = settings.blur + 'px';
+                    document.querySelector('#beautify-modal input[type="range"]').value = settings.blur;
+                }
+
+                // 恢复 UI 控件值 (回显)
+                if (settings.uiState) {
+                    if (settings.uiState.sidebarColor) document.getElementById('sidebar-color-picker').value = settings.uiState.sidebarColor;
+                    if (settings.uiState.sidebarOpacity) {
+                        document.getElementById('sidebar-opacity').value = settings.uiState.sidebarOpacity;
+                        document.getElementById('sidebar-opacity-val').innerText = settings.uiState.sidebarOpacity;
+                    }
+                    
+                    if (settings.uiState.topBarColor) document.getElementById('topbar-color-picker').value = settings.uiState.topBarColor;
+                    if (settings.uiState.topBarOpacity) {
+                        document.getElementById('topbar-opacity').value = settings.uiState.topBarOpacity;
+                        document.getElementById('topbar-opacity-val').innerText = settings.uiState.topBarOpacity;
+                    }
+
+                    if (settings.uiState.storyColor) document.getElementById('story-color-picker').value = settings.uiState.storyColor;
+                    if (settings.uiState.storyOpacity) {
+                        document.getElementById('story-opacity').value = settings.uiState.storyOpacity;
+                        document.getElementById('story-opacity-val').innerText = settings.uiState.storyOpacity;
+                    }
+                    
+                    // 新增 UI 回显
+                    if (settings.uiState.thoughtBgColor) document.getElementById('thought-bg-picker').value = settings.uiState.thoughtBgColor;
+                    if (settings.uiState.thoughtOpacity) {
+                        document.getElementById('thought-opacity').value = settings.uiState.thoughtOpacity;
+                        document.getElementById('thought-opacity-val').innerText = settings.uiState.thoughtOpacity;
+                    }
+                    if (settings.uiState.thoughtTextColor) document.getElementById('thought-text-picker').value = settings.uiState.thoughtTextColor;
+                    
+                    // 恢复音乐播放器 UI 回显 (Color Pickers)
+                    // Note: 透明度 slider 回显略复杂，这里简化处理，如果有保存值则设置 slider
+                    if (settings.musicWidgetBgColor) {
+                        // 尝试从 rgba 解析出色值和透明度回显到控件
+                        // 简化起见，这里假设用户如果改了颜色，slider 可能归位，或者需要更复杂的解析逻辑
+                        // 这里我们只做简单的 storage -> css variable 恢复，UI控件回显尽力而为
+                    }
+                }
+
+                // 恢复音乐播放器样式
+                if (settings.musicWidgetBgColor) root.style.setProperty('--music-widget-bg-color', settings.musicWidgetBgColor);
+                if (settings.musicWidgetBgImg) root.style.setProperty('--music-widget-bg-img', settings.musicWidgetBgImg);
+                if (settings.musicCoverImg) {
+                    root.style.setProperty('--music-cover-img', settings.musicCoverImg);
+                    if (settings.musicCoverImg !== 'none') document.getElementById('music-cover').innerText = '';
+                }
+                if (settings.playBtnBgColor) root.style.setProperty('--play-btn-bg-color', settings.playBtnBgColor);
+                if (settings.playBtnBorder) root.style.setProperty('--play-btn-border', settings.playBtnBorder);
+                
+                // 恢复装饰层
+                if (settings.decorImage) {
+                    document.getElementById('bg-decoration-layer').style.backgroundImage = settings.decorImage;
+                }
+                if (settings.decorOpacity !== undefined) {
+                    document.getElementById('bg-decoration-layer').style.opacity = settings.decorOpacity;
+                    document.getElementById('decoration-opacity').value = settings.decorOpacity;
+                    document.getElementById('decoration-opacity-val').innerText = settings.decorOpacity;
+                }
+                
+                // 恢复颜色选择器 (简单起见，这里就不一一做 hex 转换回显了，主要是 slide bar)
+
+            } catch (e) {
+                console.error("Load beauty settings failed:", e);
+            }
+        }
+
+        function resetBeautySettings() {
+            if(confirm("确定要重置所有美化设置恢复默认吗？")) {
+                localStorage.removeItem(BEAUTY_KEY);
+                location.reload();
+            }
+        }
+
+        function buyItem(name, price) {
+            let currentPoints = parseInt(document.getElementById('val-points').innerText) || 0;
+            if (currentPoints >= price) {
+                // 扣除积分
+                currentPoints -= price;
+                document.getElementById('val-points').innerText = currentPoints;
+                
+                // 更新UI
+                renderShop();
+                
+                alert(`✅ 购买成功：[${name}]！\n(积分已扣除，道具已放入背包)`);
+            } else {
+                alert("❌ 积分不足，快去完成任务赚取积分吧！");
+            }
+        }
+
+        // --- 音乐播放器逻辑 ---
+        let audioPlayer = new Audio();
+        let playlist = [];
+        let currentTrackIndex = -1;
+        let isPlaying = false;
+
+        audioPlayer.addEventListener('timeupdate', updateProgressBar);
+        audioPlayer.addEventListener('ended', nextMusic);
+
+        // 切换悬浮窗显示/隐藏
+        function openMusic() {
+            toggleMusicWidget();
+        }
+        
+        function toggleMusicWidget() {
+            const widget = document.getElementById('music-widget');
+            if (widget.style.display === 'flex') {
+                widget.style.display = 'none';
+            } else {
+                widget.style.display = 'flex';
+                widget.classList.add('active');
+            }
+        }
+        
+        function togglePlaylist() {
+            document.getElementById('playlist-drawer').classList.toggle('open');
+        }
+
+        function handleMusicUpload(input) {
+            if (input.files && input.files.length > 0) {
+                for (let i = 0; i < input.files.length; i++) {
+                    const file = input.files[i];
+                    const url = URL.createObjectURL(file);
+                    playlist.push({
+                        name: file.name.replace(/\.[^/.]+$/, ""), // 去除扩展名
+                        url: url,
+                        file: file
+                    });
+                }
+                renderPlaylist();
+                if (currentTrackIndex === -1) {
+                    playTrack(0); // 如果当前没播放，自动播放第一首
+                }
+            }
+            input.value = ''; // 清空，允许重复选
+        }
+
+        function renderPlaylist() {
+            const listDiv = document.getElementById('playlist');
+            let html = '';
+            playlist.forEach((track, index) => {
+                const activeClass = index === currentTrackIndex ? 'active' : '';
+                html += `
+                    <div class="playlist-item ${activeClass}">
+                        <div class="playlist-item-name" onclick="playTrack(${index})">
+                            ${index + 1}. ${track.name}
+                            ${index === currentTrackIndex && isPlaying ? ' 🔊' : ''}
+                        </div>
+                        <button class="rename-btn" onclick="renameMusic(${index}, event)">✏️</button>
+                    </div>
+                `;
+            });
+            listDiv.innerHTML = html;
+        }
+
+        function renameMusic(index, event) {
+            event.stopPropagation(); // 防止触发播放
+            const track = playlist[index];
+            const newName = prompt("请输入新的歌曲名称：", track.name);
+            if (newName && newName.trim() !== "") {
+                track.name = newName.trim();
+                renderPlaylist();
+                // 如果正在播放这首，也要更新标题显示
+                if (index === currentTrackIndex) {
+                    document.getElementById('music-title').innerText = track.name;
+                }
+            }
+        }
+
+        function playTrack(index) {
+            if (index < 0 || index >= playlist.length) return;
+            
+            currentTrackIndex = index;
+            const track = playlist[index];
+            
+            // 如果切歌，才重新加载；如果只是暂停再继续，不需要
+            if (audioPlayer.src !== track.url) {
+                audioPlayer.src = track.url;
+            }
+            
+            audioPlayer.play().then(() => {
+                isPlaying = true;
+                updatePlayerUI();
+            }).catch(e => {
+                console.error("Playback failed:", e);
+                alert("播放失败，请检查音频文件格式。");
+            });
+        }
+
+        function togglePlay() {
+            if (playlist.length === 0) return;
+            
+            if (isPlaying) {
+                audioPlayer.pause();
+                isPlaying = false;
+            } else {
+                // 如果还没开始过，从第一个开始
+                if (currentTrackIndex === -1 && playlist.length > 0) {
+                    playTrack(0);
+                    return;
+                }
+                audioPlayer.play();
+                isPlaying = true;
+            }
+            updatePlayerUI();
+        }
+
+        function prevMusic() {
+            if (playlist.length === 0) return;
+            let newIndex = currentTrackIndex - 1;
+            if (newIndex < 0) newIndex = playlist.length - 1;
+            playTrack(newIndex);
+        }
+
+        function nextMusic() {
+            if (playlist.length === 0) return;
+            let newIndex = currentTrackIndex + 1;
+            if (newIndex >= playlist.length) newIndex = 0; // 循环播放
+            playTrack(newIndex);
+        }
+
+        function setVolume(val) {
+            audioPlayer.volume = val;
+        }
+
+        function updatePlayerUI() {
+            const btn = document.getElementById('play-pause-btn');
+            btn.innerText = isPlaying ? '⏸' : '▶';
+            
+            // 封面旋转控制
+            const cover = document.getElementById('music-cover');
+            if (isPlaying) {
+                cover.classList.add('playing');
+            } else {
+                cover.classList.remove('playing');
+            }
+            
+            if (currentTrackIndex !== -1) {
+                const track = playlist[currentTrackIndex];
+                document.getElementById('music-title').innerText = track.name;
+                document.getElementById('music-artist').innerText = "本地导入";
+            }
+            
+            renderPlaylist(); // 更新列表里的高亮
+        }
+
+        function updateProgressBar() {
+            const { currentTime, duration } = audioPlayer;
+            if (isNaN(duration)) return;
+            
+            const percent = (currentTime / duration) * 100;
+            document.getElementById('music-progress-bar').style.width = `${percent}%`;
+            
+            document.getElementById('music-current-time').innerText = formatTime(currentTime);
+            document.getElementById('music-duration').innerText = formatTime(duration);
+        }
+
+        function formatTime(seconds) {
+            const min = Math.floor(seconds / 60);
+            const sec = Math.floor(seconds % 60);
+            return `${min}:${sec < 10 ? '0' + sec : sec}`;
+        }
+
+        function seekMusic(e) {
+            const container = document.getElementById('music-progress-container');
+            const width = container.clientWidth;
+            const clickX = e.offsetX;
+            const duration = audioPlayer.duration;
+            
+            if (!isNaN(duration)) {
+                audioPlayer.currentTime = (clickX / width) * duration;
+            }
+        }
+        
+        // --- 拖拽逻辑 (长按或直接拖动) ---
+        dragElement(document.getElementById("music-widget"));
+
+        function dragElement(elmnt) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            
+            elmnt.onmousedown = dragMouseDown;
+
+            function dragMouseDown(e) {
+                // 如果点击的是按钮或列表，不触发拖拽
+                if (e.target.closest('.control-btn') || 
+                    e.target.closest('.play-btn') || 
+                    e.target.closest('.playlist-toggle') ||
+                    e.target.closest('.playlist-drawer') ||
+                    e.target.closest('.widget-close-float')) {
+                    return;
+                }
+                
+                e = e || window.event;
+                e.preventDefault();
+                // 获取鼠标初始位置
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e = e || window.event;
+                e.preventDefault();
+                // 计算新位置
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                // 设置元素新位置
+                elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+                elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+                // 清除right属性
+                elmnt.style.right = 'auto'; 
+            }
+
+            function closeDragElement() {
+                // 停止移动
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+    </script>
+
+
+
+</body></html>
